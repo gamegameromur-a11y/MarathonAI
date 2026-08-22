@@ -8,7 +8,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "src/**"
+      - "**/*.zip"
       - ".github/workflows/build.yml"
   pull_request:
     branches: [ "main" ]
@@ -16,7 +16,10 @@ on:
 
 env:
   DOTNET_VERSION: "8.0.x"
-  PROJECT_PATH: "src/MarathonAI/MarathonAI.csproj"
+  # Repo kökünde duran kaynak zip -- proje bu zip'in İÇİNDE, açılmamış halde.
+  SOURCE_ZIP: "MarathonAI_v10_skeleton.zip"
+  # Zip açıldıktan sonra .csproj'un bulunduğu yol (zip'in kendi iç yapısına göre).
+  PROJECT_PATH: "extracted\\MarathonAI\\src\\MarathonAI\\MarathonAI.csproj"
   CONFIGURATION: "Release"
 
 jobs:
@@ -26,6 +29,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Extract source zip
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${{ env.SOURCE_ZIP }}")) {
+            Write-Error "Kaynak zip bulunamadı: ${{ env.SOURCE_ZIP }} (repo kökünde olmalı, dosya adını kontrol edin)"
+            exit 1
+          }
+          Expand-Archive -Path "${{ env.SOURCE_ZIP }}" -DestinationPath "extracted" -Force
+          Write-Host "Zip açıldı, içerik:"
+          Get-ChildItem -Recurse "extracted" -Depth 3 | Select-Object FullName
 
       - name: Setup .NET ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v4
@@ -50,6 +64,9 @@ jobs:
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
           --output "${{ github.workspace }}\publish"
+        # Not: PROJECT_PATH zaten "extracted\..." ile başladığı için,
+        # publish çıktısı repo kökündeki ayrı bir "publish" klasörüne yazılır
+        # (extracted/ ile karışmaz).
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

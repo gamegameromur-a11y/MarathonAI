@@ -1,0 +1,60 @@
+name: Build MarathonAI
+
+# main dalına push yapıldığında veya elle tetiklendiğinde çalışır.
+# Windows runner üzerinde .NET 8 SDK ile derler, çıktıyı "Actions" sekmesinden
+# indirilebilir bir artifact (zip) olarak yükler.
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "src/**"
+      - ".github/workflows/build.yml"
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: {}   # Actions sekmesinden elle "Run workflow" ile de tetiklenebilir
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  PROJECT_PATH: "src/MarathonAI/MarathonAI.csproj"
+  CONFIGURATION: "Release"
+
+jobs:
+  build:
+    runs-on: windows-latest   # WPF + WebView2 -> Windows runner şart, Linux/Mac'te derlenemez
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore "${{ env.PROJECT_PATH }}"
+
+      - name: Build
+        run: >
+          dotnet build "${{ env.PROJECT_PATH }}"
+          --configuration ${{ env.CONFIGURATION }}
+          --no-restore
+
+      - name: Publish (self-contained, framework-dependent değil)
+        run: >
+          dotnet publish "${{ env.PROJECT_PATH }}"
+          --configuration ${{ env.CONFIGURATION }}
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          --output "${{ github.workspace }}\publish"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarathonAI-win-x64-${{ github.run_number }}
+          path: ${{ github.workspace }}\publish\**
+          if-no-files-found: error
+          retention-days: 30

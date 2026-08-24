@@ -17,7 +17,7 @@ on:
 env:
   DOTNET_VERSION: "8.0.x"
   # Repo kökünde duran kaynak zip -- proje bu zip'in İÇİNDE, açılmamış halde.
-  SOURCE_ZIP: "MarathonAI_v19_skeleton.zip"
+  SOURCE_ZIP: "MarathonAI_v19_skeleton_fixed.zip"
   # Zip açıldıktan sonra .csproj'un bulunduğu yol (zip'in kendi iç yapısına göre).
   PROJECT_PATH: "extracted\\MarathonAI\\src\\MarathonAI\\MarathonAI.csproj"
   CONFIGURATION: "Release"
